@@ -23,20 +23,6 @@ month_dict={
             11:"NOV",
             12:"DEC",
             }
-day_dict={
-            1:01,
-            2:2,
-            3:3,
-            4:4,
-            5:5,
-            5:"JUN",
-            7:"JUL",
-            8:"AUG",
-            9:"SEP",
-            10:"OCT",
-            11:"NOV",
-            12:"DEC",
-            }
 
 
 chat_hist =[]
@@ -91,13 +77,14 @@ def on_recv(payload):
     
 @app.route("/")
 def show_users(req):
+    this_device_addr=str(CLIENT_ADDRESS)
     convo_list = []
     for i in chat_hist:
         print(i)
         if i[1] not in convo_list:
             convo_list.append(i[1])
     print(convo_list)
-    return render_template('convos.html', convo_list= convo_list)
+    return render_template('convos.html', convo_list= convo_list, this_device_addr=this_device_addr)
 
 @app.route("/new_convo",  methods=['GET', 'POST'])
 def new_convo(req):
@@ -105,11 +92,12 @@ def new_convo(req):
     if req.method == 'POST':
         convo = str(req.form.get('new_address'))
         return redirect("/"+convo)
-    return render_template('new_convo.html', convo=convo)
+    return render_template('new_convo.html')
     
    
 @app.route("/<string:convo>",  methods=['GET', 'POST'])
 def message_input(req, convo):
+    convo=convo
     global chat_hist
     local_list= []
     this_device_addr=str(CLIENT_ADDRESS)   

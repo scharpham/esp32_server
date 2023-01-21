@@ -1,4 +1,4 @@
-{% args convo_list %}
+{% args convo_list, this_device_addr %}
 
 {% include 'base_header.html' %}
 
@@ -6,6 +6,8 @@
     <meta charset="UTF-8">
     <title>Conversations</title>
 </head>
+
+
 
 <style>
 table {
@@ -16,7 +18,8 @@ table {
 </style>
 
 <body>
-<h1>Message Window</h1>
+
+<h1>Message Window, You:{{ this_device_addr }} </h1>
 <table>
 <thead>
 <tr>
