@@ -1,25 +1,61 @@
-from microdot import Microdot, Response
+from microdot import Microdot, Response, redirect
 from microdot_utemplate import render_template
 import utime
 from ucollections import OrderedDict
 import network
+import time
 
 app = Microdot()
 Response.default_content_type='text/html'
 
 
+month_dict={
+            1:"JAN",
+            2:"FEB",
+            3:"MAR",
+            4:"APR",
+            5:"MAY",
+            5:"JUN",
+            7:"JUL",
+            8:"AUG",
+            9:"SEP",
+            10:"OCT",
+            11:"NOV",
+            12:"DEC",
+            }
+day_dict={
+            1:01,
+            2:2,
+            3:3,
+            4:4,
+            5:5,
+            5:"JUN",
+            7:"JUL",
+            8:"AUG",
+            9:"SEP",
+            10:"OCT",
+            11:"NOV",
+            12:"DEC",
+            }
 
-emp_dict={}
-with open("/log/messages.csv", "r") as file:
-    for i in file.readlines():
-        (sent_time_unix, user1, user2, message) = i.split(",")
-        emp_dict[sent_time_unix] = (user1, user2, message)
+
+chat_hist =[]
+try:
+    #open("/log/messages.csv", "r")
+    with open("/log/messages.csv", "r") as file:
+        for i in file.readlines():
+            line_list = (i.split(","))
+            chat_hist.append([x.strip() for x in line_list])
+        file.close()
+        print(chat_hist)
+except:
+    print('file doesnt exist yet or some other error')
 
 #LORA Section
 
 from ulora import LoRa, ModemConfig, SPIConfig
 
-# Lora Parameters
+# Lora Parameters 
 RFM95_RST = 14 #reset pin on board.
 RFM95_SPIBUS = SPIConfig.esp32_2
 RFM95_CS = 5
@@ -34,9 +70,9 @@ lora = LoRa(RFM95_SPIBUS, RFM95_INT, CLIENT_ADDRESS, RFM95_CS, reset_pin=RFM95_R
 
 
 
-def csv_write(time_unix, user1, user2, message):
-    with open('/log/messsages.csv', "a") as file:
-        file.write(str(time_unix) +","+ user1 +","+ user2 +"," + message +"\n")
+def csv_write(sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this):
+    with open('/log/messages.csv', "a") as file:
+        file.write(str(sent_time_unix) +","+ other_device_addr +","+ this_device_addr +"," + message_oth +"," + message_this+"\n")
         file.close()
         
 def on_recv(payload):
@@ -44,50 +80,62 @@ def on_recv(payload):
     print("Received:", payload.message)
     print("RSSI: {}; SNR: {}".format(payload.rssi, payload.snr))
     print(payload.message)
-    from_user = str(payload.header_from)
-    to_user = str(payload.header_to)
-    message_str = payload.message.decode()
+    other_device_addr = str(payload.header_from)
+    this_device_addr = str(payload.header_to)
+    message_intermediate = payload.message.decode()
     sent_time_unix = str(message_str.split("%$%$")[0])
-    message_itself = message_str.split("%$%$")[2]
-    emp_dict[sent_time_unix] = (from_user, to_user, message_itself)
-    csv_write(sent_time_unix, from_user, to_user, message_itself)
+    message_oth = message_str.split("%$%$")[2]
+    message_this = ""
+    chat_hist.append([sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this])
+    csv_write(sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this)
     
 @app.route("/")
 def show_users(req):
     convo_list = []
-    for k, v in emp_dict.items():
-        if v[1] not in convo_list:
-            convo_list.append(v[1])
+    for i in chat_hist:
+        print(i)
+        if i[1] not in convo_list:
+            convo_list.append(i[1])
     print(convo_list)
-    return render_template('conversations.html', convo_list= convo_list)    
+    return render_template('convos.html', convo_list= convo_list)
 
-# def csv_to_dict(convo):
-#     with open("/log/messages.csv", "r") as file:
-#         for i in file.readlines():
-#             (sent_time_unix, user1, user2, message) = i.split(",")
-#             if user1==convo:
-#                 emp_dict[sent_time_unix] = (user1, user2, message)
-
+@app.route("/new_convo",  methods=['GET', 'POST'])
+def new_convo(req):
+    convo = ""
+    if req.method == 'POST':
+        convo = str(req.form.get('new_address'))
+        return redirect("/"+convo)
+    return render_template('new_convo.html', convo=convo)
     
    
 @app.route("/<string:convo>",  methods=['GET', 'POST'])
 def message_input(req, convo):
-    for k, v in emp_dict.items():
-        local_dict={}
-        if v[1] == convo:
-            local_dict[k] = (v[0], v[1], v[2], v[3])
+    global chat_hist
+    local_list= []
+    this_device_addr=str(CLIENT_ADDRESS)   
+    for i in chat_hist:
+        if i[1] == convo:
+            local_list.append(i)
+#     for i in local_list:
+#         try:
+#             tag = time.gmtime(int(i[0]) -946684800)
+#             tag = str("%02d" %(tag[2],))+month_dict[tag[1]]+str(tag[0])+" "+str(tag[3])+":"+str(tag[4])
+#             i.append(tag)
+#         except
     if req.method == 'POST':
         sent_time_unix = str(req.form.get('unixTime'))
-        message = str(req.form.get('textbox'))
-        from_user=str(CLIENT_ADDRESS)
-        to_user = str(SERVER_ADDRESS)
-        data = sent_time_unix+"%$%$"+message
-        lora.send_to_wait(data, SERVER_ADDRESS)
-        emp_dict[sent_time_unix]=(to_user, from_user, message)
-        emp_dict = OrderedDict(sorted(emp_dict.items()))
-        csv_write(sent_time_unix, to_user, from_user, message)
-        print(sent_time_unix)
-    return render_template('message_input.html', local_dict= local_dict, convo=convo)
+        message_this = str(req.form.get('textbox'))
+        message_oth = ""
+        other_device_addr = convo
+        data = sent_time_unix+"%$%$"+message_this
+        lora.send_to_wait(data, int(convo))
+        local_list.append([sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this])
+        #print(local_list)
+        chat_hist.append([sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this])
+        #local_list = local_list.sort()
+        csv_write(sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this)
+        print(local_list)
+    return render_template('message_input.html', local_list= local_list, convo=convo, this_device_addr=this_device_addr)
 
 lora.on_recv = on_recv
 lora.set_mode_rx()

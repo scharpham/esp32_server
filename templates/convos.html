@@ -1,0 +1,39 @@
+{% args convo_list %}
+
+{% include 'base_header.html' %}
+
+<head>
+    <meta charset="UTF-8">
+    <title>Conversations</title>
+</head>
+
+<style>
+table {
+    width: 100%;
+    color: white;
+    border: 1px solid;
+}
+</style>
+
+<body>
+<h1>Message Window</h1>
+<table>
+<thead>
+<tr>
+<th>Convo</th>
+</tr>
+</thead>
+<tbody>
+
+
+{% for convo in convo_list %}
+<tr>
+<td><a href = "/{{ convo }}"</a> {{ convo }} </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+
+</body>
+</html>

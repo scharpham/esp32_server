@@ -1,45 +1,59 @@
-{% args emp_dict %}
+{% args local_list, convo, this_device_addr %}
 
-<!DOCTYPE html>
-<html>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% include 'base_header.html' %}
 <style>
 
-th, td { color:white; 
+
+
+table {
+    width: 100%;
+    color: white;
+    border: 1px solid;
 }
 
-body { color:white; background-color:black;
+form {
+  overflow: hidden;
+}
+input {
+  float: right;
+  clear: both;
 }
 </style>
 
+
+
 <body>
-<h1>Message Window</h1>
+<h1>Message_Hist</h1>
+<div class "tableFixHead">
 <table>
 <thead>
 <tr>
-<th>UnixTime</th>
-<th>Content</th>
+<th>Time</th>
+<th>{{convo}}</th>
+<th>You={{ this_device_addr }}</th>
 </tr>
 </thead>
 <tbody>
 
-{% for key , value in emp_dict.items() %}
-<tr>
-<td>{{ key }} </td>
-<td>{{ value }}</td>
-</tr>
+{% for list in local_list %}
+        <tr>
+        <td class = "time_left">{{ list[0] }} </td>
+        <td class = "col_left">{{ list[3] }}</td>
+        <td class = "col_right">{{ list[4] }} </td>
+        </tr>
 {% endfor %}
 </tbody>
 </table>
+</div>
+
 <form method="POST", onsubmit="getUnixTime()">
-<textarea id="textbox" name="textbox" rows="4"></textarea>
-<input type ="hidden" id="unixTime", name="unixTime"/>
+<input type="text" id="textbox" name="textbox" style="width: 100%; max-width: 100%; rows="4" class="cursor-right"/>
+<input type ="hidden" id="unixTime", name="unixTime"/><br>
 <input type="submit" name="submit"/>
 </form>
 
 <script>
-function getUnixTime() {
+function getUnixTime() { 
     var inst = Math.round((new Date()).getTime() / 1000);
     document.getElementById("unixTime").value = inst;
     }
