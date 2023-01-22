@@ -21,7 +21,7 @@ def wlan_start(wifimode): #options "AP" or "STA"
         print('connected to Wifi:')
         
     elif wifimode == "AP":
-        ssid = 'ESP32'
+        ssid = 'ESP32_2'
         password = '123456789'
         ap = network.WLAN(network.AP_IF)
         ap.config(essid=ssid, password=password)

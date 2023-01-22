@@ -62,15 +62,15 @@ def csv_write(sent_time_unix, other_device_addr, this_device_addr, message_oth, 
         file.close()
         
 def on_recv(payload):
-    print("From:", payload.header_from)
-    print("Received:", payload.message)
-    print("RSSI: {}; SNR: {}".format(payload.rssi, payload.snr))
-    print(payload.message)
+#     print("From:", payload.header_from)
+#     print("Received:", payload.message)
+#     print("RSSI: {}; SNR: {}".format(payload.rssi, payload.snr))
+    message_intermediate = payload.message
     other_device_addr = str(payload.header_from)
     this_device_addr = str(payload.header_to)
-    message_intermediate = payload.message.decode()
-    sent_time_unix = str(message_str.split("%$%$")[0])
-    message_oth = message_str.split("%$%$")[2]
+    print(message_intermediate, other_device_addr, this_device_addr)
+    sent_time_unix = str(message_intermediate.decode().split("%$%$")[0])
+    message_oth = str(message_intermediate.decode().split("%$%$")[1])
     message_this = ""
     chat_hist.append([sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this])
     csv_write(sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this)
@@ -81,7 +81,7 @@ def show_users(req):
     convo_list = []
     for i in chat_hist:
         print(i)
-        if i[1] not in convo_list:
+        if i[1] not in convo_list and i[1] != this_device_addr:
             convo_list.append(i[1])
     print(convo_list)
     return render_template('convos.html', convo_list= convo_list, this_device_addr=this_device_addr)
@@ -93,6 +93,15 @@ def new_convo(req):
         convo = str(req.form.get('new_address'))
         return redirect("/"+convo)
     return render_template('new_convo.html')
+
+# @app.route("/settings",  methods=['GET', 'POST'])
+# def settings(req):
+#     if req.method == 'POST':
+#         essid = str(req.form.get('new_address'))
+#         password = str(req.form.get('new_address'))
+#         auth_type = str(req.form.get('new_address'))
+#     return render_template('settings.html')
+    
     
    
 @app.route("/<string:convo>",  methods=['GET', 'POST'])
@@ -110,19 +119,20 @@ def message_input(req, convo):
 #             tag = str("%02d" %(tag[2],))+month_dict[tag[1]]+str(tag[0])+" "+str(tag[3])+":"+str(tag[4])
 #             i.append(tag)
 #         except
+    
     if req.method == 'POST':
         sent_time_unix = str(req.form.get('unixTime'))
         message_this = str(req.form.get('textbox'))
+        print(message_this)
         message_oth = ""
         other_device_addr = convo
         data = sent_time_unix+"%$%$"+message_this
-        lora.send_to_wait(data, int(convo))
-        local_list.append([sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this])
-        #print(local_list)
-        chat_hist.append([sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this])
-        #local_list = local_list.sort()
-        csv_write(sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this)
-        print(local_list)
+        if [sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this] not in local_list:
+            lora.send_to_wait(data, int(convo))
+            local_list.append([sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this])
+            chat_hist.append([sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this])
+            csv_write(sent_time_unix, other_device_addr, this_device_addr, message_oth, message_this)
+        
     return render_template('message_input.html', local_list= local_list, convo=convo, this_device_addr=this_device_addr)
 
 lora.on_recv = on_recv
