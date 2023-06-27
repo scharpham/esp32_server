@@ -7,7 +7,7 @@ The server hosts a website that a user connects to and then can send messages ov
 
 The beauty of this is that it does not require a seperate keyboard. 
 
-The user connects to the esp32 via wifi, then routes to the localhost serving the microdot website. The user then can select their recepient, and send that user a message. 
+The user connects to the esp32 via wifi, then routes to the localhost serving the microdot website. The user then can select their intended recipient, and send that user a message. 
 
 Can be used with all devices(android/ios/pc)
 
